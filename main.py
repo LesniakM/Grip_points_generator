@@ -73,19 +73,28 @@ class App:
         self.gui = Tk(className='Python Examples - Window Size')
         self.gui.geometry("1400x600")
         self.gui.title("Welcome to Grip pointer app")
-        self.gui.tk_setPalette(background='#3C3F41', foreground='#CCCCCC',
-                               activeBackground='black', activeForeground='#40E0D0')
+
+        self.background_color = '#3C3F41'
+        self.foreground_color = '#CCCCCC'
+        self.activeBackground_color = '#DDDDDD'
+        self.activeForeground_color = '#222222'
+
+        self.gui.tk_setPalette(background=self.background_color,
+                               foreground=self.foreground_color,
+                               activeBackground=self.activeBackground_color,
+                               activeForeground=self.activeForeground_color)
 
         self.combo_style = ttk.Style()
-        self.combo_style.theme_use('clam')
-        self.combo_style.configure("TCombobox", fieldbackground='#3C3F41', foreground='#CCCCCC', background='#3C3F41',
-                                   activeBackground='black', activeForeground='#40E0D0', bordercolor='#111111')
-
+        self.combo_style.theme_use('default')
+        self.combo_style.configure("TCombobox",
+                                   fieldbackground=self.background_color,
+                                   foreground=self.foreground_color,
+                                   background=self.background_color,
+                                   activeBackground=self.activeBackground_color)
         self.img_edit = ImageEditor()
 
         self.mirrored = StringVar(value="False")
-        self.image_path = StringVar()
-        self.dimensions_var = StringVar()
+        self.image_path = StringVar(value="Load image first, please!")
         self.preview_scale_var = IntVar(value=4)
         self.load_scale_var = IntVar(value=1)
 
@@ -97,27 +106,10 @@ class App:
         self.gui.bind("<Button 3>", self.get_mouse_click_pos_right)
         self.gui.bind("<Button 2>", self.get_mouse_click_pos_middle)
 
-        self.dimensions_label_info = None
-        self.dimensions_label = None
-        self.preview_scale_box = None
-        self.mirrored_label = None
-        self.mirrored_box = None
-        self.load_scale_label = None
-        self.preview_scale_label = None
-        self.load_scale_box = None
-        self.preview_canvas = None
         self.preview_image = None
-        self.image_on_canvas = None
         self.preview_canvas_grip_indicator = None
         self.preview_canvas_tip_indicator = None
         self.preview_canvas_line = None
-        self.info_label = None
-        self.path_label = None
-        self.grip_pos_label = None
-        self.tip_pos_label = None
-        self.select_button = None
-        self.save_points_button = None
-        self.add_points_button = None
         self.image_data = None
         self.char_grip_list = None
 
@@ -130,29 +122,21 @@ class App:
     # noinspection PyTypeChecker
     def create_ui_elements(self):
         self.dimensions_label_info = Label(self.gui, text="Dimensions:")
+        self.dimensions_var = StringVar(value="Load image first, please!")
         self.dimensions_label = Label(self.gui, textvariable=self.dimensions_var)
 
         self.preview_scale_label = Label(self.gui, text="Preview scale:")
         self.preview_scale_box = ttk.Combobox(self.gui,
                                               textvariable=self.preview_scale_var,
-                                              values=[1, 2, 4, 6, 8],
-                                              background='#3C3F41',
-                                              foreground='#CCCCCC')
-
-
+                                              values=[1, 2, 4, 6, 8])
 
         self.load_scale_label = Label(self.gui, text="Load pre-scale:")
         self.load_scale_box = ttk.Combobox(self.gui, textvariable=self.load_scale_var,
-                                           values=[1, 2, 4],
-                                           background='#3C3F41',
-                                           foreground='#CCCCCC')
+                                           values=[1, 2, 4])
 
         self.mirrored_label = Label(self.gui, text="Mirrored:")
-        self.mirrored_box = ttk.Combobox(self.gui, textvariable=self.mirrored, values=[True, False],
-                                         background='#3C3F41',
-                                         foreground='#CCCCCC')
+        self.mirrored_box = ttk.Combobox(self.gui, textvariable=self.mirrored, values=[True, False])
 
-        # self.preview_image = PhotoImage(file=r'preview.png')
         self.preview_canvas = Canvas(self.gui, width=0, height=0, bg='#AAAAAA')
         self.image_on_canvas = self.preview_canvas.create_image(0, 0, anchor="nw", image=self.preview_image)
         self.info_label = Label(self.gui, text="Path:")
@@ -162,8 +146,8 @@ class App:
         self.tip_pos_label = Label(self.gui, textvariable=self.mouse_var_middle)
 
         self.select_button = Button(self.gui, text="Select image", command=self.select_image)
-        self.add_points_button = Button(self.gui, text="Select image", command=self.append_grip_point)
-        self.save_points_button = Button(self.gui, text="Save points!", command=self.save_grip_points)
+        self.add_points_button = Button(self.gui, text="Add points to list", command=self.append_grip_point)
+        self.save_points_button = Button(self.gui, text="Save list!", command=self.save_grip_points)
 
         self.organize_ui()
 
@@ -173,31 +157,29 @@ class App:
         left_pad = 6
         top_pad = 6
 
-        self.dimensions_var.set("Load image first, please!")
-        self.image_path.set("Load image first, please!")
+        self.preview_canvas.place(x=col_width * 0 + left_pad, y=row_height * 7 + top_pad)
 
-        self.preview_canvas.place(x=col_width*0+left_pad, y=row_height*7+top_pad)
+        self.info_label.place(x=col_width * 0 + left_pad, y=row_height * 0 + top_pad)
+        self.path_label.place(x=col_width * 1 + left_pad, y=row_height * 0 + top_pad)
+        self.select_button.place(x=col_width * 0 + left_pad, y=row_height * 1 + top_pad)
+        self.save_points_button.place(x=col_width * 1 + left_pad, y=row_height * 1 + top_pad)
 
-        self.info_label.place(x=col_width*0+left_pad, y=row_height*0+top_pad)
-        self.path_label.place(x=col_width*1+left_pad, y=row_height*0+top_pad)
-        self.select_button.place(x=col_width*0+left_pad, y=row_height*1+top_pad)
-        self.save_points_button.place(x=col_width*1+left_pad, y=row_height*1+top_pad)
+        self.grip_pos_label.place(x=col_width * 0 + left_pad, y=row_height * 2 + top_pad)
+        self.tip_pos_label.place(x=col_width * 1 + left_pad, y=row_height * 2 + top_pad)
 
-        self.grip_pos_label.place(x=col_width*0+left_pad, y=row_height*2+top_pad)
-        self.tip_pos_label.place(x=col_width*1+left_pad, y=row_height*2+top_pad)
+        self.dimensions_label_info.place(x=col_width * 0 + left_pad, y=row_height * 3 + top_pad)
+        self.dimensions_label.place(x=col_width * 1 + left_pad, y=row_height * 3 + top_pad)
 
-        self.dimensions_label_info.place(x=col_width*0+left_pad, y=row_height*3+top_pad)
-        self.dimensions_label.place(x=col_width*1+left_pad, y=row_height*3+top_pad)
-
-        self.preview_scale_label.place(x=col_width*0+left_pad, y=row_height*4+top_pad)
-        self.preview_scale_box.place(x=col_width*1+left_pad, y=row_height*4+top_pad)
+        self.preview_scale_label.place(x=col_width * 0 + left_pad, y=row_height * 4 + top_pad)
+        self.preview_scale_box.place(x=col_width * 1 + left_pad, y=row_height * 4 + top_pad)
         self.preview_scale_box.bind('<<ComboboxSelected>>', self.refresh_preview_img)
 
-        self.load_scale_label.place(x=col_width*0+left_pad, y=row_height*5+top_pad)
-        self.load_scale_box.place(x=col_width*1+left_pad, y=row_height*5+top_pad)
+        self.load_scale_label.place(x=col_width * 0 + left_pad, y=row_height * 5 + top_pad)
+        self.load_scale_box.place(x=col_width * 1 + left_pad, y=row_height * 5 + top_pad)
 
-        self.mirrored_label.place(x=col_width*0+left_pad, y=row_height*6+top_pad)
-        self.mirrored_box.place(x=col_width*1+left_pad, y=row_height*6+top_pad)
+        self.mirrored_label.place(x=col_width * 0 + left_pad, y=row_height * 6 + top_pad)
+        self.mirrored_box.place(x=col_width * 1 + left_pad, y=row_height * 6 + top_pad)
+        self.add_points_button.place(x=col_width * 2.5 + left_pad, y=row_height * 6 + top_pad)
 
     def select_image(self):
         path = tkinter.filedialog.askopenfilename()
@@ -221,7 +203,8 @@ class App:
             self.preview_canvas.itemconfigure(self.image_on_canvas, image=new_image)
             self.preview_canvas.config(width=new_image.width(), height=new_image.height())
             dimension_string = str(len(self.image_data[0])) + "x" + str(len(self.image_data)) + \
-                               "(Preview:" + str(new_image.width()) + "x" + str(new_image.height()) + ")"
+                "(Preview:" + str(new_image.width()) + "x" + str(new_image.height()) + ")"
+
             self.dimensions_var.set(dimension_string)
 
     def save_grip_points(self):
@@ -239,7 +222,7 @@ class App:
         mouse = [0, 0]
         mouse[0] = self.mouse_pos_right[0] // scale
         mouse[1] = self.mouse_pos_right[1] // scale
-        self.preview_canvas_grip_indicator = self.draw_click_indicator(mouse[0], mouse[1],)
+        self.preview_canvas_grip_indicator = self.draw_click_indicator(mouse[0], mouse[1], )
         self.refresh_angle()
         self.mouse_var_right.set("Grip:" + str(mouse))
 
@@ -283,7 +266,6 @@ class App:
         else:
             self.best_suited_img = best_suited[0]
         print(self.points_angle, best_suited, self.best_suited_img)
-
 
     def append_grip_point(self):
         self.char_grip_list.append("points")
