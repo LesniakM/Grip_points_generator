@@ -288,7 +288,10 @@ class App:
             self.points_angle = self.points_angle + 360
         best_suited = min(enumerate(self.angles_list), key=lambda x: abs(x[1] - self.points_angle))
         if self.mirrored.get() == "True":
-            self.best_suited_img = best_suited[0] + 40
+            if best_suited[0] == 0:
+                self.best_suited_img = 40
+            else:
+                self.best_suited_img = 80 - best_suited[0]
         else:
             self.best_suited_img = best_suited[0]
         print(self.points_angle, best_suited, self.best_suited_img)
