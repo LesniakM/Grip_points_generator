@@ -5,7 +5,7 @@ import cv2
 from PIL import Image
 from PIL import ImageTk
 import imutils
-from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas, PhotoImage
+from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
 import tkinter.filedialog
 
 
@@ -41,6 +41,14 @@ class ImageEditor:
         return image
 
     def rotate_image(self, image, deg, scale=None):
+        """
+        Rotates given image by given angle.
+        Scales up image before rotate and scale down to original dimensions afterwards for better quality.
+            :param image: Image in cv2 format
+            :param deg: Degree of rotation.
+            :param scale: The larger the scale, the slower the rotate function is.
+            :return: Rotated image
+        """
         if scale is None:
             scale = self.rotate_scale_factor
         if scale != 0:
@@ -52,7 +60,17 @@ class ImageEditor:
             rotated_image = imutils.rotate_bound(image, angle=deg)
             return rotated_image
 
-    def resize(self, image, scale_factor, interpolation):
+    def resize(self, image, scale_factor, interpolation=None):
+        """
+        Resizes image with given scale factor and interpolation method.
+            :param image: Image in cv2 format
+            :param scale_factor: The image will be scaled by this factor.
+            :param interpolation: Interpolation type, e.g.: cv2.IMREAD_UNCHANGED, cv2.INTER_NEAREST, cv2.INTER_AREA etc.
+            :type scale_factor: float or int
+            :return: Resized image shape.
+        """
+        if interpolation is None:
+            interpolation = self.scale_default_method
         width = int(image.shape[1] * scale_factor)
         height = int(image.shape[0] * scale_factor)
         dim = (width, height)
@@ -60,6 +78,10 @@ class ImageEditor:
         return resized
 
     def get_allowed_angles_list(self):
+        """
+        Creates list of allowed angles for full rotation, from 45 deg part
+            :return: angle_list - Allowed angles for full rotation.
+        """
         angle_list = []
         angle_amt = len(self.allowed_angles)
         for n in range(40):
@@ -74,23 +96,6 @@ class App:
         self.gui.geometry("1400x600")
         self.gui.title("Welcome to Grip pointer app")
 
-        self.background_color = '#3C3F41'
-        self.foreground_color = '#CCCCCC'
-        self.activeBackground_color = '#DDDDDD'
-        self.activeForeground_color = '#222222'
-
-        self.gui.tk_setPalette(background=self.background_color,
-                               foreground=self.foreground_color,
-                               activeBackground=self.activeBackground_color,
-                               activeForeground=self.activeForeground_color)
-
-        self.combo_style = ttk.Style()
-        self.combo_style.theme_use('default')
-        self.combo_style.configure("TCombobox",
-                                   fieldbackground=self.background_color,
-                                   foreground=self.foreground_color,
-                                   background=self.background_color,
-                                   activeBackground=self.activeBackground_color)
         self.img_edit = ImageEditor()
 
         self.mirrored = StringVar(value="False")
@@ -116,6 +121,8 @@ class App:
         self.angles_list = self.img_edit.get_allowed_angles_list()
         self.best_suited_img = None
 
+        self.combo_style = None
+        self.set_color_palettes()
         self.create_ui_elements()
         self.gui.mainloop()
 
@@ -150,6 +157,25 @@ class App:
         self.save_points_button = Button(self.gui, text="Save list!", command=self.save_grip_points)
 
         self.organize_ui()
+
+    def set_color_palettes(self):
+        background_color = '#3C3F41'
+        foreground_color = '#CCCCCC'
+        active_background_color = '#DDDDDD'
+        active_foreground_color = '#222222'
+
+        self.gui.tk_setPalette(background=background_color,
+                               foreground=foreground_color,
+                               activeBackground=active_background_color,
+                               activeForeground=active_foreground_color)
+
+        self.combo_style = ttk.Style()
+        self.combo_style.theme_use('default')
+        self.combo_style.configure("TCombobox",
+                                   fieldbackground=background_color,
+                                   foreground=foreground_color,
+                                   background=background_color,
+                                   activeBackground=active_background_color)
 
     def organize_ui(self):
         row_height = 26
