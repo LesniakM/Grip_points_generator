@@ -21,7 +21,7 @@ class App:
 
         self.mirrored = StringVar(value="False")
         self.image_path = StringVar(value="Load image first, please!")
-        self.preview_scale_var = IntVar(value=2)
+        self.preview_scale_var = IntVar(value=1)
         self.load_scale_var = IntVar(value=4)
 
         self.mouse_var_right = StringVar(value="(0,0)")
@@ -221,17 +221,23 @@ class App:
                 self.best_suited_img = 80 - best_suited[0]
         else:
             self.best_suited_img = best_suited[0]
-        print(self.points_angle, best_suited, self.best_suited_img)
 
     def append_grip_point(self):
         image_width = len(self.image_data[0])
         image_height = len(self.image_data)
         if image_height != image_width:
             frames = image_width // image_height
+        else:
+            frames = 1
         grip_points = self.mouse_var_right.get().split(":")[1]
-        image_index = ", " + str(self.best_suited_img) + ")"
-        tupled = grip_points.replace("[", "(").replace("]", image_index)
-        self.char_grip_list.append(tupled)
+        global_x = int(grip_points.replace("[", ""). split(", ")[0])
+        global_y = int(grip_points.replace("]", "").split(", ")[1])
+        frame = global_x // image_height
+        frame_center_x = int(global_x - frame * image_height - (image_width/2) / frames)
+        frame_center_y = int(global_y - image_height/2)
+        image_index = self.best_suited_img
+        output = (frame_center_x, frame_center_y, image_index)
+        self.char_grip_list.append(str(output))
         self.char_grip_list_var.set(str(self.char_grip_list))
 
 
