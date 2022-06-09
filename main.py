@@ -1,93 +1,14 @@
 import math
-from math import cos, sin, atan, sqrt, radians, acos, degrees, asin
-
 import cv2
-from PIL import Image
-from PIL import ImageTk
-import imutils
-from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
 import tkinter.filedialog
 
-
-def convert_image_to_tk(cv2_image):
-    blue, green, red, alpha = cv2.split(cv2_image)
-    merged_img = cv2.merge((red, green, blue, alpha))
-    image_array = Image.fromarray(merged_img)
-    tk_image = ImageTk.PhotoImage(image=image_array)
-    return tk_image
+from image_manager import ImageManager
+from math import degrees
+from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
 
 
 def save_img_to_file(name, img):
     cv2.imwrite('output/' + name + '.png', img)
-
-
-class ImageEditor:
-    def __init__(self):
-        self.rotate_scale_factor = 16
-        self.load_method = cv2.IMREAD_UNCHANGED
-        self.scale_up_method = cv2.INTER_NEAREST
-        self.scale_down_method = cv2.INTER_AREA
-        self.scale_default_method = cv2.INTER_NEAREST
-
-        self.allowed_angles = (0,
-                               11.31,  # 1/5
-                               18.43,  # 1/3
-                               26.57,  # 1/2
-                               33.69,  # 2/3
-                               )
-
-    def load_image(self, path):
-        image = cv2.imread(path, self.load_method)
-        return image
-
-    def rotate_image(self, image, deg, scale=None):
-        """
-        Rotates given image by given angle.
-        Scales up image before rotate and scale down to original dimensions afterwards for better quality.
-            :param image: Image in cv2 format
-            :param deg: Degree of rotation.
-            :param scale: The larger the scale, the slower the rotate function is.
-            :return: Rotated image
-        """
-        if scale is None:
-            scale = self.rotate_scale_factor
-        if scale != 0:
-            scaled_up = self.resize(image, scale, self.scale_up_method)
-            rotated_image = imutils.rotate_bound(scaled_up, angle=deg)
-            scaled_down = self.resize(rotated_image, 1 / scale, self.scale_down_method)
-            return scaled_down
-        else:
-            rotated_image = imutils.rotate_bound(image, angle=deg)
-            return rotated_image
-
-    def resize(self, image, scale_factor, interpolation=None):
-        """
-        Resizes image with given scale factor and interpolation method.
-            :param image: Image in cv2 format
-            :param scale_factor: The image will be scaled by this factor.
-            :param interpolation: Interpolation type, e.g.: cv2.IMREAD_UNCHANGED, cv2.INTER_NEAREST, cv2.INTER_AREA etc.
-            :type scale_factor: float or int
-            :return: Resized image shape.
-        """
-        if interpolation is None:
-            interpolation = self.scale_default_method
-        width = int(image.shape[1] * scale_factor)
-        height = int(image.shape[0] * scale_factor)
-        dim = (width, height)
-        resized = cv2.resize(image, dim, interpolation=interpolation)
-        return resized
-
-    def get_allowed_angles_list(self):
-        """
-        Creates list of allowed angles for full rotation, from 45 deg part
-            :return: angle_list - Allowed angles for full rotation.
-        """
-        angle_list = []
-        angle_amt = len(self.allowed_angles)
-        for n in range(40):
-            angle = self.allowed_angles[n - int(n / angle_amt) * angle_amt] + int(n / angle_amt) * 45
-            angle_list.append(angle)
-        return angle_list
 
 
 class App:
@@ -96,12 +17,12 @@ class App:
         self.gui.geometry("1400x600")
         self.gui.title("Welcome to Grip pointer app")
 
-        self.img_edit = ImageEditor()
+        self.img_mng = ImageManager()
 
         self.mirrored = StringVar(value="False")
         self.image_path = StringVar(value="Load image first, please!")
-        self.preview_scale_var = IntVar(value=4)
-        self.load_scale_var = IntVar(value=1)
+        self.preview_scale_var = IntVar(value=2)
+        self.load_scale_var = IntVar(value=4)
 
         self.mouse_var_right = StringVar(value="(0,0)")
         self.mouse_var_middle = StringVar(value="(0,0)")
@@ -111,14 +32,16 @@ class App:
         self.gui.bind("<Button 3>", self.get_mouse_click_pos_right)
         self.gui.bind("<Button 2>", self.get_mouse_click_pos_middle)
 
-        self.preview_image = None
+        self.char_image = None
+        self.weapon_image = None
         self.preview_canvas_grip_indicator = None
         self.preview_canvas_tip_indicator = None
         self.preview_canvas_line = None
         self.image_data = None
-        self.char_grip_list = None
+        self.char_grip_list = []
+        self.char_grip_list_var = StringVar(value=str(self.char_grip_list))
 
-        self.angles_list = self.img_edit.get_allowed_angles_list()
+        self.angles_list = self.img_mng.get_allowed_angles_list()
         self.best_suited_img = None
 
         self.combo_style = None
@@ -145,37 +68,19 @@ class App:
         self.mirrored_box = ttk.Combobox(self.gui, textvariable=self.mirrored, values=[True, False])
 
         self.preview_canvas = Canvas(self.gui, width=0, height=0, bg='#AAAAAA')
-        self.image_on_canvas = self.preview_canvas.create_image(0, 0, anchor="nw", image=self.preview_image)
+        self.image_on_canvas = self.preview_canvas.create_image(0, 0, anchor="nw", image=self.char_image)
         self.info_label = Label(self.gui, text="Path:")
         self.path_label = Label(self.gui, textvariable=self.image_path)
 
         self.grip_pos_label = Label(self.gui, textvariable=self.mouse_var_right)
         self.tip_pos_label = Label(self.gui, textvariable=self.mouse_var_middle)
+        self.char_grip_list_label = Label(self.gui, textvariable=self.char_grip_list_var)
 
         self.select_button = Button(self.gui, text="Select image", command=self.select_image)
         self.add_points_button = Button(self.gui, text="Add points to list", command=self.append_grip_point)
         self.save_points_button = Button(self.gui, text="Save list!", command=self.save_grip_points)
 
         self.organize_ui()
-
-    def set_color_palettes(self):
-        background_color = '#3C3F41'
-        foreground_color = '#CCCCCC'
-        active_background_color = '#DDDDDD'
-        active_foreground_color = '#222222'
-
-        self.gui.tk_setPalette(background=background_color,
-                               foreground=foreground_color,
-                               activeBackground=active_background_color,
-                               activeForeground=active_foreground_color)
-
-        self.combo_style = ttk.Style()
-        self.combo_style.theme_use('default')
-        self.combo_style.configure("TCombobox",
-                                   fieldbackground=background_color,
-                                   foreground=foreground_color,
-                                   background=background_color,
-                                   activeBackground=active_background_color)
 
     def organize_ui(self):
         row_height = 26
@@ -207,31 +112,53 @@ class App:
         self.mirrored_box.place(x=col_width * 1 + left_pad, y=row_height * 6 + top_pad)
         self.add_points_button.place(x=col_width * 2.5 + left_pad, y=row_height * 6 + top_pad)
 
+        self.char_grip_list_label.place(x=col_width * 0 + left_pad, y=row_height * 7 + top_pad)
+
+    def set_color_palettes(self):
+        background_color = '#3C3F41'
+        foreground_color = '#CCCCCC'
+        active_background_color = '#DDDDDD'
+        active_foreground_color = '#222222'
+
+        self.gui.tk_setPalette(background=background_color,
+                               foreground=foreground_color,
+                               activeBackground=active_background_color,
+                               activeForeground=active_foreground_color)
+
+        self.combo_style = ttk.Style()
+        self.combo_style.theme_use('default')
+        self.combo_style.configure("TCombobox",
+                                   fieldbackground=background_color,
+                                   foreground=foreground_color,
+                                   background=background_color,
+                                   activeBackground=active_background_color)
+
     def select_image(self):
         path = tkinter.filedialog.askopenfilename()
         self.image_path.set("..." + path[-48:])
-        self.img_edit.input_path = path
-        self.image_data = self.img_edit.load_image(path)
+        self.img_mng.input_path = path
+        self.image_data = self.img_mng.load_image(path)
         if self.load_scale_var.get() != 1:
-            self.image_data = self.img_edit.resize(self.image_data, self.load_scale_var.get(),
-                                                   self.img_edit.scale_default_method)
+            self.image_data = self.img_mng.resize(self.image_data, self.load_scale_var.get(),
+                                                  self.img_mng.scale_default_method)
         self.refresh_preview_img()
 
     def refresh_preview_img(self, *args):
         if self.image_data is not None:
             if self.preview_scale_var.get() != 1:
-                new_image = self.img_edit.resize(self.image_data, self.preview_scale_var.get(),
-                                                 self.img_edit.scale_default_method)
-                new_image = convert_image_to_tk(new_image)
+                new_image = self.img_mng.resize(self.image_data, self.preview_scale_var.get(),
+                                                self.img_mng.scale_default_method)
+                new_image = self.img_mng.convert_image_to_tk(new_image)
             else:
-                new_image = convert_image_to_tk(self.image_data)
-            self.preview_image = new_image  # GC prevention!
+                new_image = self.img_mng.convert_image_to_tk(self.image_data)
+            self.char_image = new_image  # GC prevention!
             self.preview_canvas.itemconfigure(self.image_on_canvas, image=new_image)
             self.preview_canvas.config(width=new_image.width(), height=new_image.height())
             dimension_string = str(len(self.image_data[0])) + "x" + str(len(self.image_data)) + \
                 "(Preview:" + str(new_image.width()) + "x" + str(new_image.height()) + ")"
 
             self.dimensions_var.set(dimension_string)
+            self.char_grip_list_label.place(x=6, y=26 * 7 + 10 + new_image.height())
 
     def save_grip_points(self):
         with open("output/char_grip_list.txt", "w") as f:
@@ -297,7 +224,15 @@ class App:
         print(self.points_angle, best_suited, self.best_suited_img)
 
     def append_grip_point(self):
-        self.char_grip_list.append("points")
+        image_width = len(self.image_data[0])
+        image_height = len(self.image_data)
+        if image_height != image_width:
+            frames = image_width // image_height
+        grip_points = self.mouse_var_right.get().split(":")[1]
+        image_index = ", " + str(self.best_suited_img) + ")"
+        tupled = grip_points.replace("[", "(").replace("]", image_index)
+        self.char_grip_list.append(tupled)
+        self.char_grip_list_var.set(str(self.char_grip_list))
 
 
 app = App()
