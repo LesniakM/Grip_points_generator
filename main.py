@@ -4,10 +4,10 @@ import tkinter.filedialog
 
 from image_manager import ImageManager
 from math import degrees
-from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
+from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas, PhotoImage
 
 
-def save_img_to_file(name, img):
+def save_img_to_file(name: str, img):
     cv2.imwrite('output/' + name + '.png', img)
 
 
@@ -32,11 +32,13 @@ class App:
         self.gui.bind("<Button 3>", self.get_mouse_click_pos_right)
         self.gui.bind("<Button 2>", self.get_mouse_click_pos_middle)
 
-        self.char_image = None
-        self.weapon_image = None
+        self.weapon_image_cv2 = self.img_mng.load_image("preview_weapon.png")
+        self.weapon_image = self.img_mng.convert_image_to_tk(self.weapon_image_cv2)
         self.preview_canvas_grip_indicator = None
         self.preview_canvas_tip_indicator = None
         self.preview_canvas_line = None
+        self.preview_canvas_weapon_indicator = None
+        self.char_image = None
         self.image_data = None
         self.char_grip_list = []
         self.char_grip_list_var = StringVar(value=str(self.char_grip_list))
@@ -46,6 +48,15 @@ class App:
 
         self.combo_style = None
         self.set_color_palettes()
+
+        self.wpn_rtd_img_cv = []
+        self.wpn_rtd_img_tk = []
+        self.wpn_angles = []
+        self.wpn_grip = []
+
+        self.wpn_rtd_img_cv, self.wpn_rtd_img_tk, self.wpn_angles, self.wpn_grip = \
+            self.img_mng.pixel_friendly_rotates(self.weapon_image_cv2, selected_px=(13, 54))
+
         self.create_ui_elements()
         self.gui.mainloop()
 
@@ -67,8 +78,12 @@ class App:
         self.mirrored_label = Label(self.gui, text="Mirrored:")
         self.mirrored_box = ttk.Combobox(self.gui, textvariable=self.mirrored, values=[True, False])
 
-        self.preview_canvas = Canvas(self.gui, width=0, height=0, bg='#AAAAAA')
-        self.image_on_canvas = self.preview_canvas.create_image(0, 0, anchor="nw", image=self.char_image)
+        self.character_canvas = Canvas(self.gui, width=0, height=0, bg='#AAAAAA')
+        self.image_on_canvas = self.character_canvas.create_image(0, 0, anchor="nw", image=self.char_image)
+
+        self.weapon_label = Label(self.gui, text="Preview weapon:")
+        self.weapon_image_label = Label(self.gui, image=self.weapon_image)
+
         self.info_label = Label(self.gui, text="Path:")
         self.path_label = Label(self.gui, textvariable=self.image_path)
 
@@ -88,15 +103,18 @@ class App:
         left_pad = 6
         top_pad = 6
 
-        self.preview_canvas.place(x=col_width * 0 + left_pad, y=row_height * 7 + top_pad)
+        self.character_canvas.place(x=col_width * 0 + left_pad, y=row_height * 7 + top_pad)
 
         self.info_label.place(x=col_width * 0 + left_pad, y=row_height * 0 + top_pad)
         self.path_label.place(x=col_width * 1 + left_pad, y=row_height * 0 + top_pad)
+
         self.select_button.place(x=col_width * 0 + left_pad, y=row_height * 1 + top_pad)
         self.save_points_button.place(x=col_width * 1 + left_pad, y=row_height * 1 + top_pad)
+        self.weapon_label.place(x=col_width * 2.5 + left_pad, y=row_height * 1 + top_pad)
 
         self.grip_pos_label.place(x=col_width * 0 + left_pad, y=row_height * 2 + top_pad)
         self.tip_pos_label.place(x=col_width * 1 + left_pad, y=row_height * 2 + top_pad)
+        self.weapon_image_label.place(x=col_width * 3 + left_pad, y=row_height * 2 + top_pad)
 
         self.dimensions_label_info.place(x=col_width * 0 + left_pad, y=row_height * 3 + top_pad)
         self.dimensions_label.place(x=col_width * 1 + left_pad, y=row_height * 3 + top_pad)
@@ -152,8 +170,8 @@ class App:
             else:
                 new_image = self.img_mng.convert_image_to_tk(self.image_data)
             self.char_image = new_image  # GC prevention!
-            self.preview_canvas.itemconfigure(self.image_on_canvas, image=new_image)
-            self.preview_canvas.config(width=new_image.width(), height=new_image.height())
+            self.character_canvas.itemconfigure(self.image_on_canvas, image=new_image)
+            self.character_canvas.config(width=new_image.width(), height=new_image.height())
             dimension_string = str(len(self.image_data[0])) + "x" + str(len(self.image_data)) + \
                 "(Preview:" + str(new_image.width()) + "x" + str(new_image.height()) + ")"
 
@@ -171,41 +189,52 @@ class App:
         self.mouse_pos_right[1] = int(event_origin.y)
         scale = self.preview_scale_var.get()
         if self.preview_canvas_grip_indicator is not None:
-            self.preview_canvas.delete(self.preview_canvas_grip_indicator)
+            self.character_canvas.delete(self.preview_canvas_grip_indicator)
         mouse = [0, 0]
         mouse[0] = self.mouse_pos_right[0] // scale
         mouse[1] = self.mouse_pos_right[1] // scale
         self.preview_canvas_grip_indicator = self.draw_click_indicator(mouse[0], mouse[1], )
         self.refresh_angle()
         self.mouse_var_right.set("Grip:" + str(mouse))
+        self.draw_weapon(self.mouse_pos_right)
 
     def get_mouse_click_pos_middle(self, event_origin):
         self.mouse_pos_middle[0] = int(event_origin.x)
         self.mouse_pos_middle[1] = int(event_origin.y)
         scale = self.preview_scale_var.get()
         if self.preview_canvas_tip_indicator is not None:
-            self.preview_canvas.delete(self.preview_canvas_tip_indicator)
+            self.character_canvas.delete(self.preview_canvas_tip_indicator)
         mouse = [0, 0]
         mouse[0] = self.mouse_pos_middle[0] // scale
         mouse[1] = self.mouse_pos_middle[1] // scale
         self.preview_canvas_tip_indicator = self.draw_click_indicator(mouse[0], mouse[1], fill='red')
         self.refresh_angle()
         self.mouse_var_middle.set("Tip:" + str(mouse) + "angle:" + str(self.points_angle)[:5])
+        self.draw_weapon(self.mouse_pos_right)
 
     def draw_click_indicator(self, x, y, fill='white'):
         if self.preview_canvas_line is not None:
-            self.preview_canvas.delete(self.preview_canvas_line)
-        self.preview_canvas_line = self.preview_canvas.create_line(self.mouse_pos_middle[0], self.mouse_pos_middle[1],
-                                                                   self.mouse_pos_right[0], self.mouse_pos_right[1],
-                                                                   dash=(4, 2))
+            self.character_canvas.delete(self.preview_canvas_line)
+        self.preview_canvas_line = self.character_canvas.create_line(self.mouse_pos_middle[0], self.mouse_pos_middle[1],
+                                                                     self.mouse_pos_right[0], self.mouse_pos_right[1],
+                                                                     dash=(4, 2))
         scale = self.preview_scale_var.get()
-        rect = self.preview_canvas.create_rectangle(
+        rect = self.character_canvas.create_rectangle(
             (x * scale,
              y * scale,
              x * scale + scale,
              y * scale + scale),
             fill=fill)
         return rect
+
+    def draw_weapon(self, pos: tuple[int, int]):
+        if self.preview_canvas_weapon_indicator is not None:
+            self.character_canvas.delete(self.preview_canvas_weapon_indicator)
+        weapon_x = pos[0] - self.wpn_grip[self.best_suited_img][0]
+        weapon_y = pos[1] - self.wpn_grip[self.best_suited_img][1]
+        self.preview_canvas_weapon_indicator = self.character_canvas.create_image(weapon_x, weapon_y,
+                                                                                  anchor="nw",
+                                                                                  image=self.wpn_rtd_img_tk[self.best_suited_img])
 
     def refresh_angle(self):
         dy = self.mouse_pos_middle[1] - self.mouse_pos_right[1]
