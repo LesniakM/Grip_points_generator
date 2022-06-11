@@ -10,3 +10,14 @@ and this (or other tool/weapon:
 
 and few click after get this: 
 ![image](https://user-images.githubusercontent.com/53059208/173203332-0cebc67c-952b-4ebe-883f-890b03292e92.png)
+
+
+
+Preview images credits:
+Character:
+TOP-DOWN Adventure Pack by O_LOBSTER
+https://o-lobster.itch.io/adventure-pack
+
+Sword:
+Ninja Adventure by Pixel-Boy and AAA
+https://pixel-boy.itch.io/ninja-adventure-asset-pack
