@@ -4,7 +4,7 @@ import tkinter.filedialog
 
 from image_manager import ImageManager
 from math import degrees
-from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas, PhotoImage
+from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
 
 
 def save_img_to_file(name: str, img):
