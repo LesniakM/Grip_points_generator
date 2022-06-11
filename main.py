@@ -2,9 +2,12 @@ import math
 import cv2
 import tkinter.filedialog
 
+from trails_generator import TrailsGen as TG
 from image_manager import ImageManager
 from math import degrees
 from tkinter import Tk, Label, StringVar, Button, ttk, IntVar, Canvas
+
+from PIL import ImageTk
 
 
 def save_img_to_file(name: str, img):
@@ -40,6 +43,8 @@ class App:
         self.preview_canvas_weapon_indicator = None
         self.char_image = None
         self.image_data = None
+        self.tk_tails_images = []
+        self.real_points_list = []
         self.char_grip_list = []
         self.char_grip_list_var = StringVar(value=str(self.char_grip_list))
 
@@ -227,14 +232,20 @@ class App:
             fill=fill)
         return rect
 
-    def draw_weapon(self, pos: tuple[int, int]):
+    def draw_weapon(self, pos: list[int, int], permanent=False):
         if self.preview_canvas_weapon_indicator is not None:
             self.character_canvas.delete(self.preview_canvas_weapon_indicator)
         weapon_x = pos[0] - self.wpn_grip[self.best_suited_img][0]
         weapon_y = pos[1] - self.wpn_grip[self.best_suited_img][1]
-        self.preview_canvas_weapon_indicator = self.character_canvas.create_image(weapon_x, weapon_y,
-                                                                                  anchor="nw",
-                                                                                  image=self.wpn_rtd_img_tk[self.best_suited_img])
+        if permanent:
+            self.character_canvas.create_image(weapon_x, weapon_y,
+                                               anchor="nw",
+                                               image=self.wpn_rtd_img_tk[self.best_suited_img])
+        else:
+            self.preview_canvas_weapon_indicator = self.character_canvas.create_image(weapon_x, weapon_y,
+                                                                                      anchor="nw",
+                                                                                      image=self.wpn_rtd_img_tk[
+                                                                                          self.best_suited_img])
 
     def refresh_angle(self):
         dy = self.mouse_pos_middle[1] - self.mouse_pos_right[1]
@@ -266,8 +277,35 @@ class App:
         frame_center_y = int(global_y - image_height/2)
         image_index = self.best_suited_img
         output = (frame_center_x, frame_center_y, image_index)
-        self.char_grip_list.append(str(output))
+        self.char_grip_list.append(output)
+        self.real_points_list.append((global_x, global_y, self.points_angle))
         self.char_grip_list_var.set(str(self.char_grip_list))
+        if len(self.char_grip_list) > 1:
+            self.draw_trail()
+        self.draw_weapon(self.mouse_pos_right, permanent=True)
+
+    def draw_trail(self):
+        if len(self.real_points_list) < 4:
+            x1 = self.real_points_list[-2][0] - len(self.image_data)*(len(self.real_points_list)-3)
+            y1 = self.real_points_list[-2][1]
+            a1 = 360 - self.real_points_list[-2][2] + 90
+        else:
+            x1 = self.real_points_list[-3][0] - len(self.image_data) * (len(self.real_points_list) - 4)
+            y1 = self.real_points_list[-3][1]
+            a1 = 360 - self.real_points_list[-3][2] + 90
+
+        x2 = self.real_points_list[-1][0] - len(self.image_data)*(len(self.real_points_list)-2)
+        y2 = self.real_points_list[-1][1]
+        a2 = 360 - self.real_points_list[-1][2] + 90
+        size = (len(self.image_data[0]), len(self.image_data))
+        point1 = (x1, y1, a1)
+        point2 = (x2, y2, a2)
+        trail = TG.generate_trail(point1, point2, size, 50, 8)
+        self.tk_tails_images.append(ImageTk.PhotoImage(trail))
+        # trail.show()
+        self.character_canvas.create_image(len(self.image_data)*(len(self.real_points_list)-2), 0,
+                                           anchor="nw",
+                                           image=self.tk_tails_images[-1])
 
 
 app = App()

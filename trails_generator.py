@@ -55,7 +55,7 @@ class TrailsGen:
                      point2: tuple[int, int, float],
                      sections=4,
                      grip_offset=10,
-                     weapon_length=120) -> list:
+                     weapon_length=100) -> list:
         intersection_point = TrailsGen.get_intersection(TrailsGen.get_equations(point1, point2))
         distance1 = TrailsGen.get_points_distance(intersection_point, point1[:2])
         distance2 = TrailsGen.get_points_distance(intersection_point, point2[:2])
@@ -74,10 +74,12 @@ class TrailsGen:
         return points
 
     @staticmethod
-    def generate_trail(point1: tuple[int, int, float], point2: tuple[int, int, float], size, sections=4):
-        xy = TrailsGen.get_polygons(point1, point2, sections)
+    def generate_trail(point1: tuple[int, int, float], point2: tuple[int, int, float], size, weapon_length, sections=4):
+        xy = TrailsGen.get_polygons(point1, point2, sections, weapon_length=weapon_length)
         img = Image.new("RGBA", size)
         num_of_poly = (len(xy) // 2) - 1
+
+        print(xy)
 
         for poly in range(num_of_poly):
             p1, p2, p3, p4 = xy[poly * 2], xy[poly * 2 + 1], xy[poly * 2 + 2], xy[poly * 2 + 3]
@@ -85,11 +87,3 @@ class TrailsGen:
             part = ImageDraw.Draw(img, "RGBA")
             part.polygon((p2, p1, p3, p4), fill=color, outline=color)
         return img
-
-
-img_size = (400, 400)
-old_grip_point = (162, 198, 145.36)
-new_grip_point = (150, 217, 180.00)
-
-image = TrailsGen.generate_trail(old_grip_point, new_grip_point, img_size, 12)
-image.save("trail.png")
