@@ -11,6 +11,8 @@ and this (or other tool/weapon:
 and few click after get this: 
 ![image](https://user-images.githubusercontent.com/53059208/173203332-0cebc67c-952b-4ebe-883f-890b03292e92.png)
 
+or this:
+![image](https://user-images.githubusercontent.com/53059208/173254694-269e10c9-8403-49ff-a45d-c72f3858ea52.png)
 
 
 
