@@ -43,6 +43,8 @@ class App:
         self.preview_canvas_weapon_indicator = None
         self.char_image = None
         self.image_data = None
+
+        self.weapons_list = []
         self.tk_tails_images = []
         self.real_points_list = []
         self.char_grip_list = []
@@ -99,6 +101,7 @@ class App:
         self.select_button = Button(self.gui, text="Select image", command=self.select_image)
         self.add_points_button = Button(self.gui, text="Add points to list", command=self.append_grip_point)
         self.save_points_button = Button(self.gui, text="Save list!", command=self.save_grip_points)
+        self.undo_last_point_button = Button(self.gui, text="Cancel last point", command=self.delete_last_point)
 
         self.organize_ui()
 
@@ -134,6 +137,7 @@ class App:
         self.mirrored_label.place(x=col_width * 0 + left_pad, y=row_height * 6 + top_pad)
         self.mirrored_box.place(x=col_width * 1 + left_pad, y=row_height * 6 + top_pad)
         self.add_points_button.place(x=col_width * 2.5 + left_pad, y=row_height * 6 + top_pad)
+        self.undo_last_point_button.place(x=col_width * 4 + left_pad, y=row_height * 6 + top_pad)
 
         self.char_grip_list_label.place(x=col_width * 0 + left_pad, y=row_height * 7 + top_pad)
 
@@ -189,6 +193,17 @@ class App:
                 f.write(str(grip) + "\n")
         f.close()
 
+    def delete_last_point(self):
+        if len(self.char_grip_list) >= 1:
+            self.character_canvas.delete(self.weapons_list[-1])
+            self.weapons_list.pop()
+            self.real_points_list.pop()
+            self.char_grip_list.pop()
+            self.char_grip_list_var.set(str(self.char_grip_list))
+        if len(self.tk_tails_images) >= 1:
+            self.character_canvas.delete(self.tk_tails_images[-1])
+            self.tk_tails_images.pop()
+
     def get_mouse_click_pos_right(self, event_origin):
         self.mouse_pos_right[0] = int(event_origin.x)
         self.mouse_pos_right[1] = int(event_origin.y)
@@ -238,9 +253,9 @@ class App:
         weapon_x = pos[0] - self.wpn_grip[self.best_suited_img][0]
         weapon_y = pos[1] - self.wpn_grip[self.best_suited_img][1]
         if permanent:
-            self.character_canvas.create_image(weapon_x, weapon_y,
-                                               anchor="nw",
-                                               image=self.wpn_rtd_img_tk[self.best_suited_img])
+            self.weapons_list.append(self.character_canvas.create_image(weapon_x, weapon_y,
+                                                                        anchor="nw",
+                                                                        image=self.wpn_rtd_img_tk[self.best_suited_img]))
         else:
             self.preview_canvas_weapon_indicator = self.character_canvas.create_image(weapon_x, weapon_y,
                                                                                       anchor="nw",
@@ -300,9 +315,9 @@ class App:
         size = (len(self.image_data[0]), len(self.image_data))
         point1 = (x1, y1, a1)
         point2 = (x2, y2, a2)
-        trail = TG.generate_trail(point1, point2, size, 50, 8)
+        item_length = len(self.weapon_image_cv2)
+        trail = TG.generate_trail(point1, point2, size, item_length, 8)
         self.tk_tails_images.append(ImageTk.PhotoImage(trail))
-        # trail.show()
         self.character_canvas.create_image(len(self.image_data)*(len(self.real_points_list)-2), 0,
                                            anchor="nw",
                                            image=self.tk_tails_images[-1])

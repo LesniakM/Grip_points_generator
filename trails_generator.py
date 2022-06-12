@@ -54,20 +54,19 @@ class TrailsGen:
     def get_polygons(point1: tuple[int, int, float],
                      point2: tuple[int, int, float],
                      sections=4,
-                     grip_offset=10,
                      weapon_length=100) -> list:
         intersection_point = TrailsGen.get_intersection(TrailsGen.get_equations(point1, point2))
         distance1 = TrailsGen.get_points_distance(intersection_point, point1[:2])
         distance2 = TrailsGen.get_points_distance(intersection_point, point2[:2])
-        avg_distance = (distance1 + distance2) / 2 + grip_offset
+        avg_distance = (distance1 + distance2) / 2 + weapon_length / 10
         delta_angle = point2[2] - point1[2]
         points = []
         for i in range(sections+1):
             angle = point1[2] + delta_angle*i/(sections)
             delta_x = avg_distance * cos(radians(angle))
             delta_y = avg_distance * sin(radians(angle))
-            delta_x2 = (avg_distance + weapon_length * 0.8) * cos(radians(angle))
-            delta_y2 = (avg_distance + weapon_length * 0.8) * sin(radians(angle))
+            delta_x2 = (avg_distance + weapon_length * 0.75) * cos(radians(angle))
+            delta_y2 = (avg_distance + weapon_length * 0.75) * sin(radians(angle))
             points.append((round(intersection_point[0] + delta_x), round(intersection_point[1] - delta_y)))
             points.append((round(intersection_point[0] + delta_x2), round(intersection_point[1] - delta_y2)))
 
